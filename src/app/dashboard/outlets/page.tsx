@@ -10,6 +10,19 @@ interface Outlet {
   pic_nama: string;
   pic_email: string;
   pic_telepon: string;
+  bank?: Bankinfo [];
+}
+
+
+interface Bankinfo {
+  id: number;
+  outlet_uuid: string;
+  bank: string;
+  kode_bank: string;
+  nomor_account: string;
+  nama: string;
+  cabang: string;
+  status: string;
 }
 
 const ITEMS_PER_PAGE = 3;
@@ -55,7 +68,6 @@ export default function ListOutlets() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
   const [showFormModal, setShowFormModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -64,6 +76,10 @@ export default function ListOutlets() {
   const [picNama, setPicNama] = useState("");
   const [picEmail, setPicEmail] = useState("");
   const [picTelepon, setPicTelepon] = useState("");
+
+  const [selectedOutletDetail, setSelectOutletDetail] = useState<Outlet | null>(
+    null
+  );
 
   const totalPages = Math.ceil(outlets.length / ITEMS_PER_PAGE);
 
@@ -124,6 +140,34 @@ export default function ListOutlets() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  const fetchOutletDetail = async (uuid: string) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("Token tidak ditemukan.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.belikoin.me/pusat/outlet/${uuid}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Gagal memuat data");
+      }
+
+      setSelectOutletDetail(data.data);
+      setShowDetailModal(true);
+    } catch (err: any) {
+      alert(`Gagal memuat data: ${err.message}`);
+    }
+  };
+
   if (loading) return <div className="text-black">Loading...</div>;
   if (error)
     return <div className="text-red-600 bg-gray-100 p-4">Error: {error}</div>;
@@ -155,10 +199,7 @@ export default function ListOutlets() {
               <td className="border border-black p-2">{outlet.alamat}</td>
               <td className="border border-black p-2">
                 <button
-                  onClick={() => {
-                    setSelectedOutlet(outlet);
-                    setShowDetailModal(true);
-                  }}
+                  onClick={() => fetchOutletDetail(outlet.uuid)}
                   className="px-3 py-1 bg-gray-300 text-black rounded"
                 >
                   Detail
@@ -281,15 +322,54 @@ export default function ListOutlets() {
         onClose={() => setShowDetailModal(false)}
         title="Detail Outlet"
       >
-        {selectedOutlet && (
-          <div className="space-y-2">
-            <p>
-              <strong>Nama:</strong> {selectedOutlet.nama}
-            </p>
-            <p>
-              <strong>Alamat:</strong> {selectedOutlet.alamat}
-            </p>
-            <div className="mt-4 text-right">
+        {selectedOutletDetail ? (
+          <div className="space-y-4">
+            <div>
+              <p>
+                <strong>Nama:</strong> {selectedOutletDetail.nama}
+              </p>
+              <p>
+                <strong>Alamat:</strong> {selectedOutletDetail.alamat}
+              </p>
+              <p>
+                <strong>PIC Nama:</strong> {selectedOutletDetail.pic_nama}
+              </p>
+              <p>
+                <strong>PIC Email:</strong> {selectedOutletDetail.pic_email}
+              </p>
+              <p>
+                <strong>PIC Telepon:</strong> {selectedOutletDetail.pic_telepon}
+              </p>
+            </div>
+
+            {selectedOutletDetail.bank &&
+              selectedOutletDetail.bank.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="font-semibold mb-2">Rekening Bank:</h3>
+                  <table className="w-full border text-sm bg-white text-black">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="border p-2">Bank</th>
+                        <th className="border p-2">Nomor Rekening</th>
+                        <th className="border p-2">Nama Pemilik</th>
+                        <th className="border p-2">Cabang</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedOutletDetail.bank.map((bank) => (
+                        <tr key={bank.id}>
+                          <td className="border p-2">{bank.bank}</td>
+                          <td className="border p-2">{bank.nomor_account}</td>
+                          <td className="border p-2">{bank.nama}</td>
+                          <td className="border p-2">{bank.cabang}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+            <div className="text-right mt-4">
               <button
                 onClick={() => setShowDetailModal(false)}
                 className="px-4 py-2 bg-gray-200 rounded"
@@ -298,6 +378,8 @@ export default function ListOutlets() {
               </button>
             </div>
           </div>
+        ) : (
+          <p>Memuat detail outlet...</p>
         )}
       </Modal>
     </div>
