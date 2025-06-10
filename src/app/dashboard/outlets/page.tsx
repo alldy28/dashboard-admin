@@ -292,7 +292,7 @@ export default function ListOutlets() {
             <div className="mt-4 text-right">
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="px-4 py-2 bg-gray-300 rounded"
+                className="px-4 py-2 bg-gray-200 rounded"
               >
                 Tutup
               </button>
