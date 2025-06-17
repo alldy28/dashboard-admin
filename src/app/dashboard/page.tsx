@@ -1,136 +1,76 @@
+// src/app/dashboard/page.tsx (Hasil Akhir)
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { toast } from "sonner";
+import { type Harga, fetchHarga as fetchHargaAPI } from "./api";
+
+// Komponen Shadcn UI
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Komponen baru yang kita buat
+import { HargaCard } from "./HargaCard";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [harga, setHarga] = useState<Harga | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [harga, setHarga] = useState<{
-    gold?: { beli: number; jual: number };
-    silver?: { beli: number; jual: number };
-  }>({});
-
-
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.replace("/login");
-    } else {
+  const fetchHarga = useCallback(async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+      const data = await fetchHargaAPI(token);
+      setHarga(data);
+    } catch (err: any) {
+      toast.error("Gagal Memuat Data", {
+        description: err.message,
+      });
+    } finally {
       setLoading(false);
-      fetchHarga(token);
     }
   }, [router]);
 
-  const fetchHarga = async (token: string) => {
-    try {
-      const res = await fetch("https://api.belikoin.me/pusat/harga-emas", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || "Gagal mengambil data harga");
-      }
-
-      const newHarga: any = {};
-      json.data.forEach((item: any) => {
-        if (item.type === "gold" || item.type === "silver") {
-          newHarga[item.type] = {
-            beli: parseFloat(item.harga_beli),
-            jual: parseFloat(item.harga_jual),
-          };
-        }
-      });
-
-      setHarga(newHarga);
-    } catch (err) {
-      console.error("Fetch harga gagal:", err);
-    }
-  };
-
-  if (loading) return <p className="p-4">Loading...</p>;
+  useEffect(() => {
+    fetchHarga();
+  }, [fetchHarga]);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <main className="flex-1 p-8">
-        <h1 className="text-2xl text-green-800 font-semibold mb-6">Dashboard</h1>
-
-        <div className="grid grid-cols-1 text-green-700 md:grid-cols-2 gap-6 mb-8">
-          <HargaCard
-            title="Harga Emas"
-            image="/assets/gold.png"
-            beli={harga.gold?.beli}
-            jual={harga.gold?.jual}
-          />
-          <HargaCard
-            title="Harga Silver"
-            image="/assets/silver.png"
-            beli={harga.silver?.beli}
-            jual={harga.silver?.jual}
-          />
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function HargaCard({
-  title,
-  beli,
-  image,
-  jual,
-}: {
-  title: string;
-  beli?: number;
-  image: string;
-  jual?: number;
-}) {
-  return (
-    <div className="bg-white shadow-md rounded-lg p-6 flex items-start gap-6">
-      <div className="bg-gray-200 p-4 rounded-md">
-        <Image
-          src={image}
-          alt={title}
-          width={80}
-          height={80}
-          className="rounded"
-        />
+    <main className="flex-1 p-4 sm:p-6 md:p-8">
+      <h1 className="text-2xl font-semibold mb-6">Dashboard</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {loading ? (
+          <>
+            <Skeleton className="h-[150px] w-full rounded-xl" />
+            <Skeleton className="h-[150px] w-full rounded-xl" />
+          </>
+        ) : (
+          <>
+            <HargaCard
+              type="gold"
+              title="Harga Emas"
+              hargaBeli={harga?.gold?.beli}
+              hargaJual={harga?.gold?.jual}
+              icon="/assets/gold.png"
+              onUpdateSuccess={fetchHarga}
+            />
+            <HargaCard
+              type="silver"
+              title="Harga Perak"
+              hargaBeli={harga?.silver?.beli}
+              hargaJual={harga?.silver?.jual}
+              icon="/assets/silver.png"
+              onUpdateSuccess={fetchHarga}
+            />
+          </>
+        )}
       </div>
-
-      <div className="flex-1">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">{title}</h2>
-
-            <div className="text-gray-700 space-y-1">
-              <p>
-                <strong>Harga Beli:</strong>{" "}
-                {beli !== undefined
-                  ? `Rp ${beli.toLocaleString("id-ID")}`
-                  : "Tidak tersedia"}
-              </p>
-              <p>
-                <strong>Harga Jual:</strong>{" "}
-                {jual !== undefined
-                  ? `Rp ${jual.toLocaleString("id-ID")}`
-                  : "Tidak tersedia"}
-              </p>
-            </div>
-          </div>
-
-          <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 h-fit rounded-md ml-4">
-            Edit
-          </button>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }

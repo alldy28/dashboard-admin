@@ -1,52 +1,42 @@
+// src/components/common/modal.tsx
+
 "use client";
 
 import React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription, // Optional: for descriptions
+} from "@/components/ui/dialog";
 
 interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   title?: string;
+  description?: string;
 }
 
 export default function Modal({
-  isOpen,
-  onClose,
+  open,
+  onOpenChange,
   children,
   title,
+  description,
 }: ModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: "#fff",
-          padding: "2rem",
-          borderRadius: "8px",
-          minWidth: "300px",
-          maxWidth: "500px",
-          width: "100%",
-        }}
-      >
-        {title && <h2 style={{ marginBottom: "1rem" }}>{title}</h2>}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          {title && <DialogTitle>{title}</DialogTitle>}
+          {description && <DialogDescription>{description}</DialogDescription>}
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
